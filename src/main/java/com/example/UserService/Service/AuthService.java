@@ -5,6 +5,8 @@ import com.example.UserService.Repository.UserRepository;
 import com.example.UserService.models.Session;
 import com.example.UserService.models.SessionStatus;
 import com.example.UserService.models.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.antlr.v4.runtime.misc.Pair;
@@ -29,6 +31,8 @@ public class AuthService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     @Autowired
    private SessionRepository sessionRepository;
+    @Autowired
+    private SecretKey secret;
 
     public User signUp(String email, String password) {
         Optional<User> userOptional = userRepository.findByEmail(email);
@@ -96,6 +100,47 @@ public class AuthService {
         headers.add(HttpHeaders.SET_COOKIE,token);
         return new Pair<User, MultiValueMap<String,String>>(user,headers);
 
+    }
+    public Boolean validateToken(String token, Long id) {
+        Optional<Session> optionalSession = sessionRepository.findByTokenAndUser_Id(token,id);
+
+        if(optionalSession.isEmpty()) {
+            System.out.println("No Token or User found");
+            return false;
+        }
+
+        Session session = optionalSession.get();
+        String storedToken = session.getToken();
+
+        JwtParser jwtParser = Jwts.parser().verifyWith(secret).build();
+        Claims claims = jwtParser.parseSignedClaims(storedToken).getPayload();
+        System.out.println(claims);
+
+        long nowInMillis = System.currentTimeMillis();
+        long tokenExpiry = (Long)claims.get("expiryTime");
+
+        if(nowInMillis > tokenExpiry) {
+            System.out.println(nowInMillis);
+            System.out.println(tokenExpiry);
+            System.out.println("Token has expired");
+            return false;
+        }
+
+        Optional<User> optionalUser = userRepository.findById(id);
+        if(optionalUser.isEmpty()) {
+            return false;
+        }
+
+        String email = optionalUser.get().getEmail();
+
+        if(!email.equals(claims.get("email"))) {
+            System.out.println(email);
+            System.out.println(claims.get("email"));
+            System.out.println("User doesn't match");
+            return false;
+        }
+
+        return true;
     }
 
 
