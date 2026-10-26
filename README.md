@@ -199,11 +199,10 @@ Make sure the following tools and services are available:
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone <https://github.com/vivek-codes-source/userAuthentication>
 cd UserService
 ```
 
-Replace `<your-repository-url>` with the actual Git repository URL.
 
 ### 2. Configure the Application
 
